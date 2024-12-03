@@ -1,7 +1,14 @@
 import Image from "next/image";
 import styles from "./page.module.css";
+import { useSatellites } from "@/hooks/useSatellites";
 
 export default function Home() {
+  const { data, isPending } = useSatellites();
+  if (isPending) {
+    return <div>Loading...</div>;
+  }
+  console.log("data: ", data);
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
