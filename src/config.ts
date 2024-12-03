@@ -1,0 +1,5 @@
+export const SPACETRACK_URL="https://www.space-track.org"
+export const SPACETRACK_LOGIN_PATH="/ajaxauth/login"
+export const SPACETRACK_TLE_QUERY="/basicspacedata/query/class/gp/NORAD_CAT_ID/"
+export const TELEOS_1_NORAD_ID="41169"
+export const TELEOS_2_NORAD_ID="56310"
