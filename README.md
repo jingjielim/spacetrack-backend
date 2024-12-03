@@ -5,7 +5,7 @@
     SPACETRACK_PASSWORD=<YourSpacetrackPassword>
     MONGODB_URI=<YourMongoDbURI>
     ```
-    Your MONGODB_URI should look similar to `mongodb://localhost:27017/satellites`
+    Your MONGODB_URI should look similar to `mongodb://localhost:27017/<DATABASE_NAME>`
 2. Install MongoDB and MongoDB compass
 3. Start MongoDB
 
