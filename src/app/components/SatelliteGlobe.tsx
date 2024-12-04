@@ -29,26 +29,6 @@ const sphericalToCartesian = (
   ];
 };
 
-const calculateFuturePositions = (
-  tle: string[],
-  numPositions: number = 100
-): SatellitePosition[] => {
-  const futurePositions: SatellitePosition[] = [];
-  const now = new Date();
-  const period = computeSatellitePosition(tle, now).period; // Get the orbital period in seconds
-
-  // Calculate positions at intervals throughout the period of the revolution
-  for (let i = 0; i < numPositions; i++) {
-    const timeOffset = (period / numPositions) * i;
-    const futureTime = new Date(now.getTime() + timeOffset * 1000);
-    const position = computeSatellitePosition(tle, futureTime);
-    futurePositions.push(position);
-  }
-
-  return futurePositions;
-};
-
-
 export default function SatelliteGlobe() {
   const { data, error, isLoading } = useSatellites();
   const tleData: TLEData[] | undefined = useMemo(
@@ -60,25 +40,42 @@ export default function SatelliteGlobe() {
     [data]
   );
 
-  const [satelliteFuturePositions, setSatelliteFuturePositions] = useState<{
-    [name: string]: SatellitePosition[];
+  const [satellitePositions, setSatellitePositions] = useState<{
+    [name: string]: { positions: SatellitePosition[]; cartesianPositions: THREE.Vector3[] };
   }>({});
 
   useEffect(() => {
     if (tleData) {
       const updatePositions = () => {
-        const futurePositions: { [name: string]: SatellitePosition[] } = {};
+        const now = new Date();
+        const positions: {
+          [name: string]: { positions: SatellitePosition[]; cartesianPositions: THREE.Vector3[] };
+        } = {};
 
         tleData.forEach((satellite) => {
-          const positions = calculateFuturePositions(satellite.tle);
-          futurePositions[satellite.name] = positions;
+          const pos = computeSatellitePosition(satellite.tle, now);
+          const cartesian = new THREE.Vector3(
+            ...sphericalToCartesian(RADIUS + pos.altitude * (1 / 6371), pos.latitude, pos.longitude)
+          );
+
+          // Store the satellite's position and its cartesian coordinate
+          if (!positions[satellite.name]) {
+            positions[satellite.name] = { positions: [], cartesianPositions: [] };
+          }
+          positions[satellite.name].positions.push(pos);
+          positions[satellite.name].cartesianPositions.push(cartesian);
+
+          // Keep the position array from growing too large, we only need recent positions
+          if (positions[satellite.name].positions.length > 50) {
+            positions[satellite.name].positions.shift();
+            positions[satellite.name].cartesianPositions.shift();
+          }
         });
 
-        setSatelliteFuturePositions(futurePositions);
+        setSatellitePositions(positions);
       };
 
-      updatePositions(); // Initialize immediately
-      const interval = setInterval(updatePositions, 1000); // Update every second
+      const interval = setInterval(updatePositions, 1000);
       return () => clearInterval(interval);
     }
   }, [tleData]);
@@ -98,29 +95,20 @@ export default function SatelliteGlobe() {
           <meshStandardMaterial color="#1e90ff" wireframe={true} />
         </Sphere>
 
-        {/* Satellite Future Tracks */}
-        {Object.entries(satelliteFuturePositions).map(([name, positions]) => (
+        {/* Satellite Tracks */}
+        {Object.entries(satellitePositions).map(([name, { cartesianPositions }]) => (
           <Line
             key={name}
-            points={positions.map((pos) =>
-              new THREE.Vector3(
-                ...sphericalToCartesian(RADIUS + pos.altitude * (1 / 6371) * SATELLITE_SCALE_FACTOR, pos.latitude, pos.longitude)
-              )
-            )}
-            color="green" // Line color for future track
+            points={cartesianPositions} // Pass the array of positions to draw the track
+            color="red" // Line color
             lineWidth={2} // Line width
             visible={true} // Make the line visible
           />
         ))}
 
         {/* Satellites */}
-        {Object.entries(satelliteFuturePositions).map(([name, positions]) => (
-          <mesh
-            key={name}
-            position={new THREE.Vector3(
-              ...sphericalToCartesian(RADIUS + positions[positions.length - 1].altitude * (1 / 6371) * SATELLITE_SCALE_FACTOR, positions[positions.length - 1].latitude, positions[positions.length - 1].longitude)
-            )}
-          >
+        {Object.entries(satellitePositions).map(([name, { cartesianPositions }]) => (
+          <mesh key={name} position={cartesianPositions[cartesianPositions.length - 1]}>
             <sphereGeometry args={[0.1, 16, 16]} />
             <meshStandardMaterial color="yellow" />
           </mesh>
