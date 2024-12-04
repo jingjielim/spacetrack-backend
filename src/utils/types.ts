@@ -49,3 +49,9 @@ export type Satellite = {
   name: string;
   lastUpdated: Date;
 };
+
+export type TLEData = {
+  name: string;
+  tle: [string, string];
+}
+export type TLE = [string, string];

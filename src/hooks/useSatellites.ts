@@ -1,10 +1,11 @@
+import { Satellite } from "@/utils/types";
 import { useQuery } from "@tanstack/react-query";
 
-async function fetchSatellites(limit = 10) {
-  const response = await fetch(`pages/api/satellites`);
+async function fetchSatellites(): Promise<Array<Satellite>>{
+  const response = await fetch(`/api/satellites`);
   const data = await response.json();
   console.log("received data: ", data);
-  return data;
+  return data.data;
 }
 
 function useSatellites() {
